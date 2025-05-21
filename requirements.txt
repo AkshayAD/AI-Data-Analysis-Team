@@ -19,6 +19,9 @@ openpyxl>=3.1.0 # Reading/Writing Excel files (.xlsx)
 python-docx>=1.1.0 # Reading Word documents (.docx)
 PyPDF2>=3.0.0      # Reading PDF documents
 
+# Visualization
+plotly>=5.18.0      # Interactive charts
+
 # --- Libraries for Potential Future Enhancements (Phase 2) ---
 # Uncomment these lines if/when you implement features requiring them
 

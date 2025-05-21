@@ -15,6 +15,7 @@ An AI-driven data analysis assistant that simulates a team of AI personas (Manag
 
 - Python 3.10 or higher
 - Gemini API key (free tier)
+- Plotly for interactive visualizations
 
 ## Installation
 
