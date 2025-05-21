@@ -8,6 +8,11 @@ import openpyxl
 import pandas as pd
 import polars as pl
 
+from src.ui.components import AnalysisDashboard
+from src.project_management.project_manager import ProjectManager
+from src.ui.help_system import HelpSystem
+from src.ui.user_preferences import UserPreferences
+
 # Import functions from utils, prompts, and helpers
 from src.utils import configure_genai, get_gemini_response, process_uploaded_file
 from prompts import (
@@ -90,6 +95,10 @@ from features import setup, manager_planning, data_understanding, analysis_guida
 
 # --- Main Application Logic ---
 def main():
+    project_manager = ProjectManager()
+    help_system = HelpSystem()
+    user_prefs = UserPreferences()
+    dashboard = AnalysisDashboard()
     # --- Sidebar ---
     with st.sidebar:
         st.title("📊 AI Analysis Assistant")
@@ -140,6 +149,8 @@ def main():
                 st.session_state.current_step = new_step_index
                 st.rerun() # Rerun when step changes
 
+            if st.button("💾 Save Project"):
+                project_manager.save_state(st.session_state.project_name)
             if st.button("🔄 Reset Project"):
                 reset_session()
                 st.rerun()
@@ -155,6 +166,16 @@ def main():
 
         st.markdown("---")
         st.subheader("Settings")
+
+        theme_option = st.selectbox(
+            "Theme",
+            ["light", "dark"],
+            index=0 if user_prefs.theme == "light" else 1,
+            key="theme_select",
+        )
+        if theme_option != user_prefs.theme:
+            user_prefs.theme = theme_option
+            user_prefs.save()
 
         # Library Management Choice
         st.session_state.library_management = st.radio(
@@ -239,10 +260,20 @@ def main():
         # Placeholder content removed
     elif active_step == 4:
         analysis_execution.display_analysis_execution_step()
-        # Placeholder content removed
+        dashboard.render_code_section()
     elif active_step == 5:
         final_report.display_final_report_step()
         # Placeholder content removed
+
+    step_contexts = {
+        0: "setup",
+        1: "manager_planning",
+        2: "data_understanding",
+        3: "analysis_guidance",
+        4: "analysis_execution",
+        5: "final_report",
+    }
+    help_system.show_contextual_help(step_contexts.get(active_step, ""))
 
 # The following block of code from the original file (lines approx 279-335)
 # has been identified as redundant or outdated placeholder code and is removed.
