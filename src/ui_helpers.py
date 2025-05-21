@@ -247,23 +247,64 @@ def add_to_conversation(role, content):
     })
 
 def format_results_markdown(analysis_results):
-    """
-    Formats the analysis results into a markdown string.
-    TODO: Implement proper formatting based on analysis_results structure.
-    """
+    """Format a list of analysis results into Markdown."""
+
     if not analysis_results:
         return "No analysis results available."
 
-    markdown_output = "## Analysis Results Summary\n\n"
-    # Placeholder implementation - replace with actual formatting logic
-    for i, result in enumerate(analysis_results):
-        markdown_output += f"### Task {i+1}: {result.get('task', 'N/A')}\n\n"
-        markdown_output += f"**Approach:**\n{result.get('approach', 'N/A')}\n\n"
-        markdown_output += f"**Code:**\n```python\n{result.get('code', 'N/A')}\n```\n\n"
-        markdown_output += f"**Results:**\n{result.get('results_text', 'N/A')}\n\n"
-        markdown_output += f"**Insights:**\n{result.get('insights', 'N/A')}\n\n---\n\n"
+    lines = ["## Analysis Results Summary", ""]
 
-    return markdown_output
+    for idx, result in enumerate(analysis_results, start=1):
+        task_title = result.get("task", f"Task {idx}")
+        lines.append(f"### Task {idx}: {task_title}")
+
+        files = result.get("files")
+        if files:
+            if isinstance(files, (list, tuple)):
+                file_list = ", ".join(str(f) for f in files)
+            else:
+                file_list = str(files)
+            lines.append(f"**Files Used:** {file_list}")
+
+        approach = result.get("approach")
+        if approach:
+            lines.append("**Approach:**")
+            lines.append(approach.strip())
+
+        code = result.get("code")
+        if code:
+            lines.append("**Python Code:**")
+            lines.append(f"```python\n{code.strip()}\n```")
+
+        results_text = result.get("results_text") or result.get("results")
+        if results_text:
+            lines.append("**Results:**")
+            lines.append(results_text.strip())
+
+        insights = result.get("insights")
+        if insights:
+            lines.append("**Key Insights:**")
+            lines.append(insights.strip())
+
+        # Include any figure or plot references if present
+        fig_value = None
+        for key in result.keys():
+            lower_key = key.lower()
+            if lower_key in {"figure_file", "figure", "plot_file", "plot_html"} or "figure" in lower_key or "plot" in lower_key:
+                fig_value = result.get(key)
+                if fig_value:
+                    break
+
+        if fig_value:
+            if isinstance(fig_value, (list, tuple)):
+                for fig in fig_value:
+                    lines.append(f"**Figure File:** {fig}")
+            else:
+                lines.append(f"**Figure File:** {fig_value}")
+
+        lines.append("\n---\n")
+
+    return "\n".join(lines).strip()
 
 # Function to check API key before AI calls
 def check_api_key():
