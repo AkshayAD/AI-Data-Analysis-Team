@@ -10,6 +10,14 @@ import openpyxl # For Excel export
 # import subprocess # Import commented out - for potential future automated install
 from src.utils import configure_genai, get_gemini_response, process_uploaded_file, generate_data_profile_summary, extract_text_from_docx, extract_text_from_pdf
 
+# Alert user immediately if required deps are missing
+if st.session_state.get("genai_import_error", False):
+    st.error(
+        "google-generativeai package is not installed. "
+        "Install dependencies with `pip install -r requirements.txt`."
+    )
+    st.stop()
+
 # --- Page Configuration ---
 st.set_page_config(
     page_title="AI Data Analysis Assistant",

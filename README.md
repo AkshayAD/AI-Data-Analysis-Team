@@ -108,6 +108,15 @@ This application uses environment variables to securely store your Gemini API ke
 3. Create a new API key
 4. Copy the key and add it to your `.env` file
 
+## Troubleshooting
+
+If the app fails to start or you see an error about `google-generativeai` not
+being installed, make sure all dependencies are installed:
+
+```bash
+pip install -r requirements.txt
+```
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.

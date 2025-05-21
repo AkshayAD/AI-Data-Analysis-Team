@@ -20,11 +20,18 @@ from prompts import (
     ANALYST_TASK_PROMPT_TEMPLATE, ASSOCIATE_REVIEW_PROMPT_TEMPLATE,
     MANAGER_REPORT_PROMPT_TEMPLATE, REVIEWER_PROMPT_TEMPLATE
 )
+# Import feature functions
 from src.ui_helpers import add_download_buttons, reset_session, add_to_conversation, check_api_key
 from src.processing_helpers import parse_associate_tasks, parse_analyst_task_response
-
-# Import feature functions
 from features import setup, manager_planning, data_understanding, analysis_guidance, analysis_execution, final_report
+
+# Alert user immediately if required deps are missing
+if st.session_state.get("genai_import_error", False):
+    st.error(
+        "google-generativeai package is not installed. "
+        "Install dependencies with `pip install -r requirements.txt`."
+    )
+    st.stop()
 
 # --- Page Configuration ---
 st.set_page_config(
