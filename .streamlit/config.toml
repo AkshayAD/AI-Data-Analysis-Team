@@ -40,5 +40,6 @@ gatherUsageStats = false
 # Allows you to type in a variable or call a function to get the value
 magicEnabled = true
 
-# Hides streamlit-specific exception details in the browser
-fastRerenderEnabled = true
+[client]
+# Hides Streamlit-specific exception details in the browser
+showErrorDetails = false
