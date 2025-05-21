@@ -1,6 +1,7 @@
 import os
 import pandas as pd
-import polars as pl # Import Polars
+import polars as pl  # Import Polars
+import streamlit as st
 try:
     import google.generativeai as genai
 except ModuleNotFoundError:  # pragma: no cover - environment may not have deps
@@ -11,7 +12,6 @@ except ModuleNotFoundError:  # pragma: no cover - environment may not have deps
         st.session_state.get('genai_import_error', False) or True
     )
 from dotenv import load_dotenv
-import streamlit as st
 import docx
 from PyPDF2 import PdfReader
 import io # Needed for reading uploaded file content with Polars
