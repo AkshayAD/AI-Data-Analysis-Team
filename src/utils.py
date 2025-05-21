@@ -11,6 +11,10 @@ import io # Needed for reading uploaded file content with Polars
 # Load environment variables
 load_dotenv()
 
+def escape_curly_braces(text: str) -> str:
+    """Escape curly braces in text for safe use with str.format."""
+    return text.replace("{", "{{").replace("}", "}}") if isinstance(text, str) else text
+
 # Configure Gemini API
 def configure_genai(api_key=None):
     """

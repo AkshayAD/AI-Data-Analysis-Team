@@ -2,7 +2,12 @@ import streamlit as st
 import pandas as pd
 import polars as pl
 
-from src.utils import configure_genai, get_gemini_response, generate_data_profile_summary
+from src.utils import (
+    configure_genai,
+    get_gemini_response,
+    generate_data_profile_summary,
+    escape_curly_braces,
+)
 from prompts import ANALYST_PROMPT_TEMPLATE, REVIEWER_PROMPT_TEMPLATE # Import specific prompts
 from src.ui_helpers import add_to_conversation, check_api_key, add_download_buttons # Import necessary helpers
 
@@ -148,6 +153,7 @@ def display_data_understanding_step():
                          prompt_template_key = "reviewer_prompt_template"
                          # For reviewer, format the template with specific context
                          project_artifacts = f"Analyst's Data Summary:\n{st.session_state.analyst_summary}"
+                         project_artifacts = escape_curly_braces(project_artifacts)
                          consult_prompt = st.session_state[prompt_template_key].format(
                              project_name=st.session_state.project_name,
                              problem_statement=st.session_state.problem_statement,
