@@ -1,7 +1,15 @@
 import os
 import pandas as pd
 import polars as pl # Import Polars
-import google.generativeai as genai
+try:
+    import google.generativeai as genai
+except ModuleNotFoundError:  # pragma: no cover - environment may not have deps
+    genai = None
+    # When running outside Streamlit context we can't use st.error directly
+    # Store a flag so the main app can surface a helpful message
+    st.session_state['genai_import_error'] = (
+        st.session_state.get('genai_import_error', False) or True
+    )
 from dotenv import load_dotenv
 import streamlit as st
 import docx
@@ -28,6 +36,16 @@ def configure_genai(api_key=None):
         # Let the main app handle UI warnings/errors for missing keys during runtime
         # This function might be called before session_state is fully available initially
         print("Warning: No Gemini API key found during configure_genai call.")
+        return False
+    if genai is None:
+        error_message = (
+            "google-generativeai package is not installed. "
+            "Install dependencies with `pip install -r requirements.txt`."
+        )
+        try:
+            st.error(error_message)
+        except Exception:
+            print(error_message)
         return False
     try:
         genai.configure(api_key=key_to_use)
@@ -72,7 +90,14 @@ def get_gemini_response(prompt: str, persona: str = "general", model: str | None
     # Ensure API is configured with the current key for this call
     if not configure_genai(current_api_key):
          # Configuration failed, error likely shown by configure_genai
-         return "Error: Failed to configure Gemini API with the provided key."
+         return "Error: Failed to configure Gemini API with the provided key." \
+                " or missing dependencies."
+
+    if genai is None:
+        return (
+            "Error: google-generativeai package not installed. "
+            "Run `pip install -r requirements.txt`."
+        )
 
     try:
         # Initialize the model - No system_instruction here, it's part of the main 'prompt'
