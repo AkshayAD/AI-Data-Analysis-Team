@@ -2,7 +2,12 @@ import streamlit as st
 import os
 import json
 
-from src.utils import configure_genai, get_gemini_response, generate_data_profile_summary
+from src.utils import (
+    configure_genai,
+    get_gemini_response,
+    generate_data_profile_summary,
+    escape_curly_braces,
+)
 from prompts import MANAGER_PROMPT_TEMPLATE, REVIEWER_PROMPT_TEMPLATE # Import specific prompts
 from src.ui_helpers import add_to_conversation, check_api_key, add_download_buttons # Import necessary helpers
 
@@ -121,6 +126,7 @@ def display_manager_planning_step():
                          prompt_template_key = "reviewer_prompt_template"
                          # For reviewer, format the template with specific context
                          project_artifacts = f"Current Analysis Plan:\n{st.session_state.manager_plan}"
+                         project_artifacts = escape_curly_braces(project_artifacts)
                          consult_prompt = st.session_state[prompt_template_key].format(
                              project_name=st.session_state.project_name,
                              problem_statement=st.session_state.problem_statement,
