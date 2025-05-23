@@ -21,6 +21,7 @@ from prompts import (
     MANAGER_REPORT_PROMPT_TEMPLATE, REVIEWER_PROMPT_TEMPLATE
 )
 from src.ui_helpers import add_download_buttons, reset_session, add_to_conversation, check_api_key
+from src.error_logger import log_exception, read_log, clear_log
 from src.processing_helpers import parse_associate_tasks, parse_analyst_task_response
 
 # Import feature functions
@@ -232,6 +233,17 @@ def main():
              st.session_state.manager_report_prompt_template = st.text_area("Manager Report Prompt", value=st.session_state.manager_report_prompt_template, height=150, key="manager_report_prompt_edit")
         st.session_state.reviewer_prompt_template = st.text_area("Reviewer Prompt", value=st.session_state.reviewer_prompt_template, height=150, key="reviewer_prompt_edit")
 
+        with st.expander("Crash Log"):
+            log_text = read_log()
+            if log_text:
+                st.text_area("Latest Crash Details", log_text, height=150)
+                st.download_button("Download Crash Log", log_text, "crash_log.txt")
+                if st.button("Clear Crash Log"):
+                    clear_log()
+                    st.rerun()
+            else:
+                st.write("No crash log found.")
+
 
     # --- Main Content Area ---
     if not st.session_state.gemini_api_key and not st.session_state.project_initialized:
@@ -287,3 +299,4 @@ if __name__ == "__main__":
     except Exception as e:
         st.error(f"An unexpected error occurred in the main application: {e}")
         st.exception(e)
+        log_exception(e)

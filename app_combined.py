@@ -9,6 +9,7 @@ import re # For parsing LLM responses
 import openpyxl # For Excel export
 # import subprocess # Import commented out - for potential future automated install
 from src.utils import configure_genai, get_gemini_response, process_uploaded_file, generate_data_profile_summary, extract_text_from_docx, extract_text_from_pdf
+from src.error_logger import log_exception, read_log, clear_log
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -604,6 +605,17 @@ def main():
              st.session_state.associate_review_prompt_template = st.text_area("Associate Review Prompt", value=st.session_state.associate_review_prompt_template, height=150, key="associate_review_prompt_edit")
              st.session_state.manager_report_prompt_template = st.text_area("Manager Report Prompt", value=st.session_state.manager_report_prompt_template, height=150, key="manager_report_prompt_edit")
              st.session_state.reviewer_prompt_template = st.text_area("Reviewer Prompt", value=st.session_state.reviewer_prompt_template, height=150, key="reviewer_prompt_edit")
+
+        with st.expander("Crash Log"):
+            log_text = read_log()
+            if log_text:
+                st.text_area("Latest Crash Details", log_text, height=150)
+                st.download_button("Download Crash Log", log_text, "crash_log.txt")
+                if st.button("Clear Crash Log"):
+                    clear_log()
+                    st.rerun()
+            else:
+                st.write("No crash log found.")
              # **IMPORTANT NOTE FOR USER:** Check the 'Analyst Task Prompt' above. Ensure it uses `{file_names}` (plural) and not `{file-name}`.
 
 
@@ -1412,3 +1424,4 @@ if __name__ == "__main__":
         # Generic error catch for unexpected issues during app execution
         st.error(f"An unexpected error occurred in the main application: {e}")
         st.exception(e) # Show traceback in streamlit for debugging
+        log_exception(e)
