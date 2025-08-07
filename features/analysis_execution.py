@@ -185,11 +185,6 @@ def display_analysis_execution_step():
                         st.error(f"Failed to get analysis from Analyst: {analyst_response}")
                         add_to_conversation("system", f"Error executing task '{task_to_run}': {analyst_response}")
 
-            except KeyError as e:
-                 # ***** THIS IS WHERE THE 'file-name' KeyError WOULD BE CAUGHT *****
-                 st.error(f"Prompt Formatting Error: Missing key '{e}' in Analyst Task Prompt template. ")
-                 st.error(f"Please check the 'Analyst Task Prompt' in the sidebar settings. It should likely use '{{file_names}}' (plural) instead of '{{file-name}}'.")
-                 add_to_conversation("system", f"Error formatting Analyst Task prompt: Missing key {e}")
             except Exception as e:
                  st.error(f"An unexpected error occurred during task execution: {e}")
                  add_to_conversation("system", f"Error during task execution: {e}")
