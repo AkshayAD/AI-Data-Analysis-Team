@@ -313,3 +313,51 @@ def check_api_key():
         return False
     # Optional: Add a quick test call here if desired
     return True
+
+def display_navigation_buttons(next_button_disabled=False):
+    """
+    Displays standardized Back and Next navigation buttons.
+
+    Args:
+        next_button_disabled (bool): If True, the Next button is disabled.
+    """
+    st.markdown("---")
+    step = st.session_state.current_step
+
+    # Define the labels for the next buttons for each step
+    next_button_labels = {
+        0: "Next: Manager Planning",
+        1: "Next: Data Understanding",
+        2: "Next: Analysis Guidance",
+        3: "Next: Analysis Execution",
+        4: "Next: Final Report",
+    }
+
+    # Define the labels for the back buttons for each step
+    back_button_labels = {
+        1: "Back: Project Setup",
+        2: "Back: Manager Planning",
+        3: "Back: Data Understanding",
+        4: "Back: Analysis Guidance",
+        5: "Back: Analysis Execution",
+    }
+
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        if step > 0:
+            if st.button(f"⬅️ {back_button_labels.get(step, 'Back')}", use_container_width=True):
+                st.session_state.current_step -= 1
+                # Clear consultation response when navigating away
+                st.session_state.consultation_response = None
+                st.session_state.consultation_persona = None
+                st.rerun()
+
+    with col2:
+        if step < 5: # Max step index is 5 (Final Report)
+            if st.button(f"{next_button_labels.get(step, 'Next')} ➡️", use_container_width=True, disabled=next_button_disabled):
+                st.session_state.current_step += 1
+                # Clear consultation response when navigating away
+                st.session_state.consultation_response = None
+                st.session_state.consultation_persona = None
+                st.rerun()

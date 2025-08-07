@@ -6,17 +6,20 @@ import os # Import the os module to fix the undefined variable error
 
 from src.utils import configure_genai, get_gemini_response
 from prompts import ANALYST_TASK_PROMPT_TEMPLATE # Import specific prompts
-from src.ui_helpers import add_to_conversation, check_api_key, add_download_buttons # Import necessary helpers
+from src.ui_helpers import add_to_conversation, check_api_key, add_download_buttons, display_navigation_buttons # Import necessary helpers
 from src.processing_helpers import parse_associate_tasks, parse_analyst_task_response # Import necessary helpers
 
 def display_analysis_execution_step():
     """Displays the Analysis Execution step."""
     st.title("⚙️ 5. AI Analyst - Analysis Execution")
-    if not check_api_key(): st.stop()
 
+    # --- Prerequisite Checks ---
+    if not check_api_key():
+        st.warning("Please enter your Gemini API Key in the sidebar to continue.", icon="🔑")
+        st.stop()
     if not st.session_state.associate_guidance:
-        st.warning("Associate Guidance not available. Please complete Step 4 first.")
-        if st.button("Go back to Analysis Guidance"): st.session_state.current_step = 3; st.rerun()
+        st.warning("Associate Guidance not available. Please complete Step 4 first.", icon="🔍")
+        display_navigation_buttons(next_button_disabled=True)
         st.stop()
 
     st.markdown("### Task Execution")
@@ -367,19 +370,6 @@ def display_analysis_execution_step():
                    st.markdown(result.get('results_text', 'N/A')) # Use markdown here too
 
 
-    # --- Navigation to Next Step ---
-    st.markdown("---")
-    col1, col2 = st.columns([1, 4])
-    with col1:
-         # Add Associate Review Button (placeholder action)
-         # if st.button("Review with Associate", key="review_task_btn"):
-         #     st.info("Associate Review Feature Placeholder")
-
-         if st.button("Next: Final Report"):
-              if not st.session_state.analysis_results:
-                   st.warning("Please execute at least one analysis task before generating the final report.")
-              else:
-                   st.session_state.current_step = 5 # Index 5 = Step 6
-                   st.rerun()
-
-    add_download_buttons("FinalReport")
+    # --- Navigation ---
+    display_navigation_buttons(next_button_disabled=(not st.session_state.analysis_results))
+    add_download_buttons("AnalysisExecution")
