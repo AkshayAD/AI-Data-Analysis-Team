@@ -4,177 +4,123 @@ import json # Although not used directly, analyst response parsing might involve
 
 def parse_associate_tasks(guidance_text):
     """
-    Attempts to parse actionable tasks from the Associate's guidance.
-    Extracts blocks starting with **Task N:** and stops at "5. Develop Narrative:".
+    Attempts to parse actionable tasks from the Associate's guidance using regex splitting.
+    Extracts blocks starting with "Task N:".
     """
-    tasks = []
     if not guidance_text:
-        return tasks
-
-    # Split the guidance text into lines
-    # Split the guidance text into lines, keeping line endings to preserve structure within blocks
-    lines = guidance_text.strip().splitlines(keepends=True)
-
-    # Split the guidance text into lines, keeping line endings to preserve structure within blocks
-    lines = guidance_text.strip().splitlines(keepends=True)
+        return []
 
     # Regex to identify the start of a new Task block.
-    # This pattern looks for lines starting with optional whitespace, followed by optional bolding (**),
-    # then "Task", a space, a number, optional period, optional bolding, and a colon.
-    task_header_pattern = re.compile(r"^\s*\**\s*Task\s*\d+\.?\s*\**:", re.IGNORECASE)
+    # This pattern looks for lines starting with optional whitespace, optional bolding (**),
+    # "Task", a space, a number, an optional period, optional bolding, and a colon.
+    # It's designed to be used as a delimiter for splitting.
+    task_header_pattern = re.compile(r"(^\s*\**\s*Task\s*\d+\.?\s*\**:\s*)", re.IGNORECASE | re.MULTILINE)
 
-    current_task_block = []
-    formatted_tasks = []
+    # Stop processing at a specific narrative marker to avoid including irrelevant text.
+    stop_marker = "5. Develop Narrative:"
+    if stop_marker in guidance_text:
+        guidance_text = guidance_text.split(stop_marker)[0]
 
-    for line in lines:
-        # Check for the stop line first
-        if "5. Develop Narrative:" in line:
-            # If we were processing a task block, add its current content and stop
-            if current_task_block: # Ensure block is not empty before appending
-                formatted_tasks.append("".join(current_task_block).strip())
-            break # Stop processing lines
+    # Split the guidance text by the task headers. The `re.split` will include the
+    # delimiters in the results array because of the capturing group in the pattern.
+    parts = task_header_pattern.split(guidance_text)
 
-        line_stripped = line.strip()
-        header_match = task_header_pattern.match(line_stripped)
+    # The first part is the text before any tasks, so we discard it.
+    # Then, we group the delimiter (header) with its content that follows.
+    # e.g., parts = ["", "Task 1:", "Content 1", "Task 2:", "Content 2"]
+    # We want ["Task 1: Content 1", "Task 2: Content 2"]
+    if len(parts) > 1:
+        # Combine header with its corresponding content
+        tasks = [header + content for header, content in zip(parts[1::2], parts[2::2])]
+        # Strip whitespace from each task block
+        formatted_tasks = [task.strip() for task in tasks if task.strip()]
+    else:
+        formatted_tasks = []
 
-        if header_match:
-            # If we were processing a previous task block, add it to the list
-            if current_task_block: # Ensure block is not empty before appending
-                formatted_tasks.append("".join(current_task_block).strip())
 
-            # Start a new task block with the current line
-            current_task_block = [line]
-        # If it's not a task header but we are inside a task block, append the line
-        elif current_task_block:
-            current_task_block.append(line)
-
-    # Add the last processed task block if it exists after the loop finishes
-    if current_task_block:
-         formatted_tasks.append("".join(current_task_block).strip())
-
-    # Clean up empty strings that might result from parsing
-    formatted_tasks = [task for task in formatted_tasks if task]
-
-    # If no specific Task items were parsed, return the whole guidance as a single option
-    # This might happen if the guidance doesn't use "Task N:" format
+    # If no specific "Task N:" items were parsed, it could be that the format is
+    # different. As a fallback, we can treat the entire guidance as one actionable block.
     if not formatted_tasks and guidance_text.strip():
-         # Check if the guidance contains any lines that look like potential tasks (e.g., starting with *, -, or numbers)
-         # If so, maybe return the whole guidance as one block, otherwise return default.
-         # For now, let's just return the whole guidance if no specific tasks were found.
-         formatted_tasks = [guidance_text.strip()]
+        formatted_tasks = [guidance_text.strip()]
 
-
-    # If still empty, provide the default prompt
+    # If the list is still empty, show a warning and provide a default option.
     if not formatted_tasks:
         try:
-            st.warning("Could not automatically parse specific tasks from Associate guidance. Please manually define the task below.")
+            st.warning("Could not automatically parse specific tasks from Associate guidance.")
         except Exception:
+            # Fallback for non-Streamlit environments
             print("Warning: Could not automatically parse specific tasks from Associate guidance.")
-        return ["Manually define task based on guidance above."] # Provide a default prompt
+        # Provide a default prompt to guide the user
+        return ["Manually define task based on guidance above."]
 
-    # Ensure the "Manually define task below" option is always available
-    if "Manually define task below" not in formatted_tasks:
-        formatted_tasks.append("Manually define task below")
-
-    # Remove duplicates while preserving order as much as possible (simple approach)
-    seen = set()
-    unique_formatted_tasks = []
-    for task in formatted_tasks:
-        if task not in seen:
-            seen.add(task)
-            unique_formatted_tasks.append(task)
-
-    formatted_tasks = unique_formatted_tasks
-
-    # Move "Manually define task below" to the end if it exists
-    if "Manually define task below" in formatted_tasks:
-        formatted_tasks.remove("Manually define task below")
-        formatted_tasks.append("Manually define task below")
-
-
-
-
-    if not formatted_tasks:
-        try:
-            st.warning("Could not automatically parse specific tasks from Associate guidance. Please manually define the task below.")
-        except Exception:
-            print("Warning: Could not automatically parse specific tasks from Associate guidance.")
-        return ["Manually define task based on guidance above."] # Provide a default prompt
+    # Always provide a manual option for the user.
+    formatted_tasks.append("Manually define task below")
 
     return formatted_tasks
 
 def parse_analyst_task_response(response_text):
     """
     Parses the Analyst's response into Approach, Code, Results, and Insights.
-    Uses more robust header matching and content extraction.
+    Uses robust header matching and content extraction. This version is more resilient
+    to variations in LLM output, such as missing sections or different ordering.
     """
     if not response_text:
-        print("Parsing Error: No response text provided.")
-        return {"approach": "Error: No response from Analyst.", "code": "", "results_text": "", "insights": ""}
+        return {
+            "approach": "Error: No response from Analyst.",
+            "code": "# No code provided.",
+            "results_text": "# No results provided.",
+            "insights": "# No insights provided."
+        }
 
-    # Define headers and their potential variations (case-insensitive, flexible spacing/numbering, optional markdown bolding)
-    # Make bolding optional and handle variations in header text
+    # Define headers with flexible regex to catch variations (case-insensitive, optional elements).
     headers = {
-        "approach": r"^\s*\d*\.?\s*\**approach\**:", # Optional number, period, optional bolding
-        "code": r"^\s*\d*\.?\s*\**python?\s*code\**:", # Optional number, period, optional bolding, optional 'python'
-        "results_text": r"^\s*\d*\.?\s*\**results\**:", # Optional number, period, optional bolding
-        "insights": r"^\s*\d*\.?\s*\**key?\s*insights\**:", # Optional number, period, optional bolding, optional 'key'
+        "approach": r"^\s*\d*\.?\s*\**approach\**:",
+        "code": r"^\s*\d*\.?\s*\**python?\s*code\**:",
+        "results_text": r"^\s*\d*\.?\s*\**results\**:",
+        "insights": r"^\s*\d*\.?\s*\**key?\s*insights\**:",
     }
 
+    # Default parts dictionary to ensure all keys are present in the final output.
     parts = {
-        "approach": f"2.Could not parse 'approach' section.",
-        "code": f"Could not parse 'code' section.",
-        "results_text": f"Could not parse 'results_text' section.",
-        "insights": f"Could not parse 'insights' section."
+        "approach": "Could not parse 'Approach' section.",
+        "code": "# Could not parse 'Python Code' section.",
+        "results_text": "Could not parse 'Results' section.",
+        "insights": "Could not parse 'Key Insights' section."
     }
 
-    # Find the start index of each section using the more flexible patterns
+    # Find all occurrences of headers in the text to determine section boundaries.
     section_matches = []
     for key, pattern in headers.items():
+        # re.finditer allows finding all non-overlapping matches.
         for match in re.finditer(pattern, response_text, re.MULTILINE | re.IGNORECASE):
             section_matches.append({"key": key, "start": match.start(), "end": match.end()})
 
-    # Sort found sections by their start index
+    # Sort sections by their starting position in the text. This handles cases where
+    # the LLM provides sections in a non-standard order.
     sorted_sections = sorted(section_matches, key=lambda x: x["start"])
 
-    print(f"Found {len(sorted_sections)} potential section headers:")
-    for match in sorted_sections:
-        print(f"- Key: {match['key']}, Start: {match['start']}, End: {match['end']}")
-
-
-    # Extract content for each section
+    # Extract content for each identified section.
     for i, section_match in enumerate(sorted_sections):
         key = section_match["key"]
-        content_start_index = section_match["end"] # Content starts immediately after the header match
+        # Content begins immediately after the matched header.
+        content_start_index = section_match["end"]
 
-        # The content for the current section goes from content_start_index
-        # up to the start index of the next *any* subsequent recognized header,
-        # or the end of the text if this is the last recognized header.
+        # Content ends at the beginning of the next section, or at the end of the text
+        # if this is the last section.
         content_end_index = len(response_text)
         if i + 1 < len(sorted_sections):
-            content_end_index = sorted_sections[i+1]["start"] # Start of the next found header
+            content_end_index = sorted_sections[i+1]["start"]
 
         content = response_text[content_start_index:content_end_index].strip()
 
-        # Remove leading/trailing markdown bolding from content
-        content = re.sub(r"^\s*\*\*", "", content).strip()
-        content = re.sub(r"\*\*\s*$", "", content).strip()
-
-
-        # Specific cleanup for code block
+        # Clean up the extracted content.
+        # For the code block, remove markdown fences (e.g., ```python ... ```).
         if key == 'code':
-            # Remove markdown code fences and language specifier
-            content = re.sub(r"```python\n?|```", "", content, flags=re.IGNORECASE).strip()
+            content = re.sub(r"^```python\n?|^```\n?", "", content, flags=re.IGNORECASE)
+            content = re.sub(r"\n?```$", "", content, flags=re.IGNORECASE)
+            content = content.strip()
+        # For other sections, you might remove other unwanted artifacts if necessary.
 
         parts[key] = content
-        print(f"Extracted content for '{key}':\n---\n{content[:200]}...\n---\n") # Print snippet of extracted content
-
-
-    # Ensure all expected keys are present, even if parsing failed
-    expected_keys = ["approach", "code", "results_text", "insights"]
-    for key in expected_keys:
-        if key not in parts:
-             parts[key] = f"Could not parse '{key}' section."
-
 
     return parts
