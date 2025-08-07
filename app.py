@@ -25,7 +25,7 @@ from src.error_logger import log_exception, read_log, clear_log
 from src.processing_helpers import parse_associate_tasks, parse_analyst_task_response
 
 # Import feature functions
-from features import setup, manager_planning, data_understanding, analysis_guidance, analysis_execution, final_report
+from features import setup, manager_planning, data_understanding, analysis_guidance, analysis_execution, final_report, agentic_jupyter
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -133,7 +133,8 @@ def main():
                 "3. Data Understanding",
                 "4. Analysis Guidance",
                 "5. Analysis Execution", # Step index 4
-                "6. Final Report"     # Step index 5
+                "6. Final Report",     # Step index 5
+                "7. Agentic Jupyter"
             ]
             # Ensure current step is valid index
             current_idx = st.session_state.current_step if 0 <= st.session_state.current_step < len(step_options) else 0
@@ -276,6 +277,12 @@ def main():
     elif active_step == 5:
         final_report.display_final_report_step()
         # Placeholder content removed
+    elif active_step == 6:
+        tab1, tab2 = st.tabs(["Agentic Jupyter", "Marimo App"])
+        with tab1:
+            agentic_jupyter.display_agentic_jupyter_step()
+        with tab2:
+            st.components.v1.iframe("http://localhost:2718", height=600, scrolling=True)
 
     step_contexts = {
         0: "setup",
@@ -284,6 +291,7 @@ def main():
         3: "analysis_guidance",
         4: "analysis_execution",
         5: "final_report",
+        6: "agentic_jupyter",
     }
     help_system.show_contextual_help(step_contexts.get(active_step, ""))
 
