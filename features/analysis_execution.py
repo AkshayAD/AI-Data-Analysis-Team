@@ -350,26 +350,31 @@ def display_analysis_execution_step():
 
 
          # Expander for all previous results
-         with st.expander("View All Task Results"):
+         with st.expander("View All Task Results", expanded=True): # Default to expanded
               # Iterate in reverse to show newest first
               for i, result in enumerate(reversed(st.session_state.analysis_results)):
                    task_num = len(st.session_state.analysis_results) - i
-                   st.markdown(f"---")
-                   st.markdown(f"##### Task {task_num}: {result.get('task', 'N/A')}")
-                   st.markdown(f"*Files Used:* {', '.join(result.get('files', []))}")
-                   with st.container(): # Use container for better visual separation
-                        c1, c2 = st.columns(2)
-                        with c1:
-                             st.markdown("**Approach:**")
-                             st.text(result.get('approach', 'N/A'))
-                             st.markdown("**Insights:**")
-                             st.text(result.get('insights', 'N/A'))
-                        with c2:
-                            st.markdown("**Code:**")
-                            # Use text_area for previous results too for consistency
-                            st.text_area(f"Task {task_num} Code:", value=result.get('code', '# N/A'), height=200, key=f"code_area_{task_num}", disabled=True)
-                   st.markdown("**Results Description:**")
-                   st.markdown(result.get('results_text', 'N/A')) # Use markdown here too
+                   # Use a container with a border for each task for better visual separation
+                   with st.container(border=True):
+                        st.markdown(f"#### Task {task_num}: {result.get('task', 'N/A')}")
+                        st.markdown(f"**Files Used:** `{', '.join(result.get('files', []))}`")
+
+                        st.markdown("**Approach:**")
+                        # Use st.markdown to correctly render formatted text from the LLM
+                        st.markdown(result.get('approach', '_No approach was parsed._'))
+
+                        st.markdown("**Python Code:**")
+                        # Use st.code for proper syntax highlighting
+                        st.code(result.get('code', '# No code was parsed.'), language='python')
+
+                        st.markdown("**Results Description:**")
+                        # Use st.markdown to correctly render formatted text
+                        st.markdown(result.get('results_text', '_No results description was parsed._'))
+
+                        st.markdown("**Key Insights:**")
+                        # Use st.markdown to correctly render formatted text
+                        st.markdown(result.get('insights', '_No insights were parsed._'))
+                   st.markdown("---") # Add a separator after each container
 
 
     # --- Navigation to Next Step ---

@@ -11,10 +11,6 @@ def parse_associate_tasks(guidance_text):
     if not guidance_text:
         return tasks
 
-    # Split the guidance text into lines
-    # Split the guidance text into lines, keeping line endings to preserve structure within blocks
-    lines = guidance_text.strip().splitlines(keepends=True)
-
     # Split the guidance text into lines, keeping line endings to preserve structure within blocks
     lines = guidance_text.strip().splitlines(keepends=True)
 
@@ -91,15 +87,8 @@ def parse_associate_tasks(guidance_text):
         formatted_tasks.remove("Manually define task below")
         formatted_tasks.append("Manually define task below")
 
-
-
-
-    if not formatted_tasks:
-        try:
-            st.warning("Could not automatically parse specific tasks from Associate guidance. Please manually define the task below.")
-        except Exception:
-            print("Warning: Could not automatically parse specific tasks from Associate guidance.")
-        return ["Manually define task based on guidance above."] # Provide a default prompt
+    # The final check for empty formatted_tasks was redundant and has been removed.
+    # If the list was empty, it would have been handled by the check before adding "Manually define task below".
 
     return formatted_tasks
 
@@ -122,10 +111,10 @@ def parse_analyst_task_response(response_text):
     }
 
     parts = {
-        "approach": f"2.Could not parse 'approach' section.",
-        "code": f"Could not parse 'code' section.",
-        "results_text": f"Could not parse 'results_text' section.",
-        "insights": f"Could not parse 'insights' section."
+        "approach": "Could not parse 'approach' section.",
+        "code": "Could not parse 'code' section.",
+        "results_text": "Could not parse 'results_text' section.",
+        "insights": "Could not parse 'insights' section."
     }
 
     # Find the start index of each section using the more flexible patterns
