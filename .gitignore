@@ -6,3 +6,5 @@ __pycache__/
 .streamlit/secrets.toml
 .ipynb_checkpoints
 .DS_Store
+jupyterlite_deployment/
+src/jupyterlite_deployment/
