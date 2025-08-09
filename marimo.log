@@ -1,0 +1,30 @@
+Traceback (most recent call last):
+  File "/home/jules/.pyenv/versions/3.12.11/bin/marimo", line 8, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+         ^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/click/core.py", line 1830, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/marimo/_cli/cli.py", line 878, in run
+    check_app_correctness(name)
+  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/marimo/_cli/cli.py", line 61, in check_app_correctness
+    status = get_notebook_status(filename)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/marimo/_ast/load.py", line 118, in get_notebook_status
+    notebook = parse_notebook(contents)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.11/lib/python3.12/site-packages/marimo/_ast/parse.py", line 874, in parse_notebook
+    raise MarimoFileError("`marimo.App` definition expected.")
+marimo._ast.parse.MarimoFileError: `marimo.App` definition expected.
