@@ -2406,26 +2406,26 @@ def main():
     # Call functions from features directory based on active_step
     if not st.session_state.project_initialized:
          # Display setup form if project not initialized
-         setup.display_setup_step()
+         display_setup_step()
     elif active_step == 0:
         # This case might be redundant if setup handles initialization check,
         # but keep for clarity or if setup needs to display differently post-init.
-        setup.display_setup_step() # Or a specific post-init view if needed
+        display_setup_step() # Or a specific post-init view if needed
         # Placeholder content removed
     elif active_step == 1:
-        manager_planning.display_manager_planning_step()
+        display_manager_planning_step()
         # Placeholder content removed
     elif active_step == 2:
-        data_understanding.display_data_understanding_step()
+        display_data_understanding_step()
         # Placeholder content removed
     elif active_step == 3:
-        analysis_guidance.display_analysis_guidance_step()
+        display_analysis_guidance_step()
         # Placeholder content removed
     elif active_step == 4:
-        analysis_execution.display_analysis_execution_step()
+        display_analysis_execution_step()
         dashboard.render_code_section()
     elif active_step == 5:
-        final_report.display_final_report_step()
+        display_final_report_step()
         # Placeholder content removed
     elif active_step == 6:
         st.error("This feature is currently disabled.")
