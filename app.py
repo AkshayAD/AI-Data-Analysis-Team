@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import json
+import io
 import polars as pl
 from pathlib import Path
 import asyncio
