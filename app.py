@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import json
+import io
 import polars as pl
 from pathlib import Path
 import asyncio
@@ -2246,7 +2247,6 @@ for key, value in defaults.items():
 
 
 # Import feature functions
-from features import setup, manager_planning, data_understanding, analysis_guidance, analysis_execution, final_report
 
 # --- Main Application Logic ---
 def main():
@@ -2288,7 +2288,6 @@ def main():
                 "4. Analysis Guidance",
                 "5. Analysis Execution", # Step index 4
                 "6. Final Report",     # Step index 5
-                "7. Agentic Jupyter"
             ]
             # Ensure current step is valid index
             current_idx = st.session_state.current_step if 0 <= st.session_state.current_step < len(step_options) else 0
@@ -2408,33 +2407,29 @@ def main():
     # Call functions from features directory based on active_step
     if not st.session_state.project_initialized:
          # Display setup form if project not initialized
-         setup.display_setup_step()
+         display_setup_step()
     elif active_step == 0:
         # This case might be redundant if setup handles initialization check,
         # but keep for clarity or if setup needs to display differently post-init.
-        setup.display_setup_step() # Or a specific post-init view if needed
+        display_setup_step() # Or a specific post-init view if needed
         # Placeholder content removed
     elif active_step == 1:
-        manager_planning.display_manager_planning_step()
+        display_manager_planning_step()
         # Placeholder content removed
     elif active_step == 2:
-        data_understanding.display_data_understanding_step()
+        display_data_understanding_step()
         # Placeholder content removed
     elif active_step == 3:
-        analysis_guidance.display_analysis_guidance_step()
+        display_analysis_guidance_step()
         # Placeholder content removed
     elif active_step == 4:
-        analysis_execution.display_analysis_execution_step()
+        display_analysis_execution_step()
         dashboard.render_code_section()
     elif active_step == 5:
-        final_report.display_final_report_step()
+        display_final_report_step()
         # Placeholder content removed
     elif active_step == 6:
-        tab1, tab2 = st.tabs(["Agentic Jupyter", "Marimo App"])
-        with tab1:
-            agentic_jupyter.display_agentic_jupyter_step()
-        with tab2:
-            st.components.v1.iframe("http://localhost:2718", height=600, scrolling=True)
+        st.error("This feature is currently disabled.")
 
     step_contexts = {
         0: "setup",
@@ -2443,7 +2438,6 @@ def main():
         3: "analysis_guidance",
         4: "analysis_execution",
         5: "final_report",
-        6: "agentic_jupyter",
     }
     help_system.show_contextual_help(step_contexts.get(active_step, ""))
 
