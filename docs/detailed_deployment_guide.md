@@ -59,7 +59,7 @@ git push origin main
    - Click "Add secrets"
    - Enter the following in the text area:
      ```
-     GEMINI_API_KEY = "AIzaSyCzFpmol5qZ6VlU7owOOOdPOedglI7RcaI"
+     GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"
      ```
    - Click "Save"
 6. Click "Deploy!"

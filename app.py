@@ -8,6 +8,10 @@ import asyncio
 import subprocess
 import venv
 import plotly.express as px
+import re
+import pandas as pd
+import markdown
+from datetime import datetime
 
 
 class SecurityManager:
@@ -164,8 +168,6 @@ class UserPreferences:
             json.dumps({"theme": self.theme, "shortcuts": self.shortcuts}, indent=2)
         )
 
-from datetime import datetime
-
 
 class ProjectManager:
     """Manage saving and loading of project states."""
@@ -174,24 +176,46 @@ class ProjectManager:
         self.base_dir = Path.home() / ".ai-data-analysis" / "projects"
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
-    def save_state(self, name: str = "default") -> Path:
-        """Persist current project state to disk."""
-        state = {
+    def _extract_serializable_state(self) -> dict:
+        """Return a pruned, JSON-serializable snapshot of session state."""
+        safe_keys = {
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "user": st.session_state.get("user", "anonymous"),
-            "analysis_state": st.session_state.to_dict(),
+            "project_initialized": st.session_state.get("project_initialized", False),
+            "current_step": st.session_state.get("current_step", 0),
+            "project_name": st.session_state.get("project_name", ""),
+            "problem_statement": st.session_state.get("problem_statement", ""),
+            "data_context": st.session_state.get("data_context", ""),
+            "manager_plan": st.session_state.get("manager_plan"),
+            "analyst_summary": st.session_state.get("analyst_summary"),
+            "associate_guidance": st.session_state.get("associate_guidance"),
+            "analysis_results": st.session_state.get("analysis_results", []),
+            "final_report": st.session_state.get("final_report"),
+            "conversation_history": st.session_state.get("conversation_history", []),
+            "consultation_response": st.session_state.get("consultation_response"),
+            "consultation_persona": st.session_state.get("consultation_persona"),
+            "reviewer_response": st.session_state.get("reviewer_response"),
+            "reviewer_specific_request": st.session_state.get("reviewer_specific_request"),
+            "gemini_model": st.session_state.get("gemini_model", "gemini-2.5-flash"),
+            # Do not persist API keys or raw dataframes/texts
         }
+        return safe_keys
+
+    def save_state(self, name: str = "default") -> Path:
+        """Persist current project state to disk (safe subset)."""
+        state = self._extract_serializable_state()
         path = self.base_dir / f"{name}.json"
         path.write_text(json.dumps(state, indent=2))
         return path
 
     def load_state(self, name: str = "default"):
-        """Load a saved project state into ``st.session_state``."""
+        """Load a saved project state into ``st.session_state`` (safe subset)."""
         path = self.base_dir / f"{name}.json"
         if not path.exists():
             return None
         state = json.loads(path.read_text())
-        for key, value in state.get("analysis_state", {}).items():
+        # Only update known safe fields
+        for key, value in state.items():
             st.session_state[key] = value
         return state
 
@@ -289,7 +313,7 @@ def get_gemini_response(prompt: str, persona: str = "general", model: str | None
         else st.session_state.get("gemini_api_key", os.getenv("GEMINI_API_KEY"))
     # Use a known good default if session state isn't set or model arg is None
     current_model = model if model \
-        else st.session_state.get("gemini_model", "gemini-1.5-flash-latest")
+        else st.session_state.get("gemini_model", "gemini-2.5-flash")
 
     if not current_api_key:
         return "Error: Gemini API key not configured. Please add it in the sidebar settings."
@@ -659,7 +683,7 @@ def add_download_buttons(step_name):
                      label=f"Download {name} (XLSX)",
                      data=data,
                      file_name=f"{step_name}_{name}.xlsx",
-                     mime="application/vnd.openxmlformats-officedocument.spreadsheet.sheet",
+                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                      key=f"download_xlsx_{step_name}_{name}"
                  )
 
@@ -1101,12 +1125,18 @@ def display_final_report_step():
                 try:
                     results_summary = format_results_markdown(st.session_state.analysis_results) # Use markdown formatter
 
+                    safe_project_name = escape_curly_braces(st.session_state.project_name)
+                    safe_problem_statement = escape_curly_braces(st.session_state.problem_statement)
+                    safe_manager_plan = escape_curly_braces(st.session_state.manager_plan)
+                    safe_analyst_summary = escape_curly_braces(st.session_state.analyst_summary)
+                    safe_results_summary = escape_curly_braces(results_summary)
+
                     prompt = st.session_state.manager_report_prompt_template.format(
-                        project_name=st.session_state.project_name,
-                        problem_statement=st.session_state.problem_statement,
-                        manager_plan=st.session_state.manager_plan,
-                        analyst_summary=st.session_state.analyst_summary,
-                        analysis_results_summary=results_summary
+                        project_name=safe_project_name,
+                        problem_statement=safe_problem_statement,
+                        manager_plan=safe_manager_plan,
+                        analyst_summary=safe_analyst_summary,
+                        analysis_results_summary=safe_results_summary
                     )
 
                     report_response = get_gemini_response(prompt, persona="manager", model=st.session_state.gemini_model)
@@ -1192,18 +1222,27 @@ def display_analysis_execution_step():
     # Suggest tasks based on parsing Associate guidance
     suggested_tasks = parse_associate_tasks(st.session_state.associate_guidance)
 
+    # Build options list with unique values, ensuring 'Manually define task below' is last
+    options_list = []
+    seen_opts = set()
+    for opt in suggested_tasks:
+        if opt not in seen_opts and opt != "Manually define task below":
+            options_list.append(opt)
+            seen_opts.add(opt)
+    options_list.append("Manually define task below")
+
     # Select or define task
     # Check if 'selected_task_execution' exists, otherwise set default
     if 'selected_task_execution' not in st.session_state:
-        st.session_state.selected_task_execution = suggested_tasks[0] if suggested_tasks else "Manually define task below"
+        st.session_state.selected_task_execution = options_list[0] if options_list else "Manually define task below"
 
     st.session_state.selected_task_execution = st.selectbox(
          "Select suggested task or define manually:",
-         options=suggested_tasks + ["Manually define task below"],
+         options=options_list,
          # Try to keep selection, but handle cases where the stored value is not in the current list
-         index=(suggested_tasks + ["Manually define task below"]).index(st.session_state.selected_task_execution)
-               if st.session_state.selected_task_execution in (suggested_tasks + ["Manually define task below"])
-               else (suggested_tasks + ["Manually define task below"]).index("Manually define task below"), # Default to manual if stored value is invalid
+         index=(options_list).index(st.session_state.selected_task_execution)
+               if st.session_state.selected_task_execution in (options_list)
+               else (options_list).index("Manually define task below"), # Default to manual if stored value is invalid
          key="task_selector"
     )
 
@@ -1293,13 +1332,13 @@ def display_analysis_execution_step():
             # Format the prompt - **CRITICAL POINT FOR THE ERROR**
             try:
                 prompt = st.session_state.analyst_task_prompt_template.format(
-                    project_name=st.session_state.project_name,
-                    problem_statement=st.session_state.problem_statement,
-                    previous_results_summary=previous_results_summary,
-                    task_to_execute=task_to_run,
-                    file_names=", ".join(selected_files), # Use selected files (PLURAL)
-                    available_columns=available_columns_str,
-                    data_sample=data_sample_json
+                    project_name=escape_curly_braces(st.session_state.project_name),
+                    problem_statement=escape_curly_braces(st.session_state.problem_statement),
+                    previous_results_summary=escape_curly_braces(previous_results_summary),
+                    task_to_execute=escape_curly_braces(task_to_run),
+                    file_names=escape_curly_braces(", ".join(selected_files)), # Use selected files (PLURAL)
+                    available_columns=escape_curly_braces(available_columns_str),
+                    data_sample=escape_curly_braces(data_sample_json)
                 )
 
                 # Call LLM
@@ -1405,13 +1444,13 @@ def display_analysis_execution_step():
                  with st.spinner("AI Analyst is generating insights from the output..."):
                      # Prepare prompt for Analyst to get insights from output
                      output_insights_prompt = st.session_state.analyst_task_prompt_template.format(
-                         project_name=st.session_state.project_name,
-                         problem_statement=st.session_state.problem_statement,
-                         previous_results_summary="Context: Analyzing output from a previous task.", # Provide context
-                         task_to_execute=f"Analyze the following output based on the original task: {last_result.get('task', 'N/A')}",
-                         file_names=", ".join(last_result.get('files', [])), # Use files from the task
-                         available_columns="N/A (Analyzing output, not raw data)",
-                         data_sample=f"Original Code:\n```python\n{edited_code}\n```\n\nPasted Output:\n```\n{pasted_output}\n```" # Include code and output as sample
+                         project_name=escape_curly_braces(st.session_state.project_name),
+                         problem_statement=escape_curly_braces(st.session_state.problem_statement),
+                         previous_results_summary=escape_curly_braces("Context: Analyzing output from a previous task."), # Provide context
+                         task_to_execute=escape_curly_braces(f"Analyze the following output based on the original task: {last_result.get('task', 'N/A')}"),
+                         file_names=escape_curly_braces(", ".join(last_result.get('files', []))), # Use files from the task
+                         available_columns=escape_curly_braces("N/A (Analyzing output, not raw data)"),
+                         data_sample=escape_curly_braces(f"Original Code:\n```python\n{edited_code}\n```\n\nPasted Output:\n```\n{pasted_output}\n```") # Include code and output as sample
                      )
                      # Modify prompt slightly to focus on interpreting output
                      output_insights_prompt += "\n\nBased on the 'Pasted Output' provided, interpret the results and provide key insights related to the original task. Focus on explaining what the output means in the context of the analysis."
@@ -1467,13 +1506,13 @@ def display_analysis_execution_step():
                      # Prepare prompt for Analyst to get insights from plot description
                      # Send original task, code, and AI's original results_text (plot description)
                      plot_insights_prompt = st.session_state.analyst_task_prompt_template.format(
-                         project_name=st.session_state.project_name,
-                         problem_statement=st.session_state.problem_statement,
-                         previous_results_summary="Context: Analyzing a generated plot based on its description.", # Provide context
-                         task_to_execute=f"Analyze the plot described below based on the original task: {last_result.get('task', 'N/A')}",
-                         file_names=", ".join(last_result.get('files', [])), # Use files from the task
-                         available_columns="N/A (Analyzing plot description)",
-                         data_sample=f"Original Code:\n```python\n{edited_code}\n```\n\nAI's Description of Plot:\n```\n{last_result.get('results_text', 'N/A')}\n```" # Include code and AI's description
+                         project_name=escape_curly_braces(st.session_state.project_name),
+                         problem_statement=escape_curly_braces(st.session_state.problem_statement),
+                         previous_results_summary=escape_curly_braces("Context: Analyzing a generated plot based on its description."), # Provide context
+                         task_to_execute=escape_curly_braces(f"Analyze the plot described below based on the original task: {last_result.get('task', 'N/A')}"),
+                         file_names=escape_curly_braces(", ".join(last_result.get('files', []))), # Use files from the task
+                         available_columns=escape_curly_braces("N/A (Analyzing plot description)"),
+                         data_sample=escape_curly_braces(f"Original Code:\n```python\n{edited_code}\n```\n\nAI's Description of Plot:\n```\n{last_result.get('results_text', 'N/A')}\n```") # Include code and AI's description
                      )
                      # Modify prompt slightly to focus on interpreting the described plot
                      plot_insights_prompt += "\n\nBased on the 'AI's Description of Plot' provided, interpret the visualization and provide key insights related to the original task. Focus on explaining what the described plot suggests about the data."
@@ -1564,9 +1603,9 @@ def display_analysis_guidance_step():
               with st.spinner("AI Associate is generating guidance and next steps..."):
                     try:
                         prompt = st.session_state.associate_prompt_template.format(
-                             problem_statement=st.session_state.problem_statement,
-                             manager_plan=st.session_state.manager_plan,
-                             analyst_summary=st.session_state.analyst_summary
+                             problem_statement=escape_curly_braces(st.session_state.problem_statement),
+                             manager_plan=escape_curly_braces(st.session_state.manager_plan),
+                             analyst_summary=escape_curly_braces(st.session_state.analyst_summary)
                         )
                         assoc_response = get_gemini_response(prompt, persona="associate", model=st.session_state.gemini_model)
                         if assoc_response and not assoc_response.startswith("Error:"):
@@ -1615,11 +1654,11 @@ def display_analysis_guidance_step():
                          project_artifacts = f"Associate's Guidance:\n{st.session_state.associate_guidance}"
                          project_artifacts = escape_curly_braces(project_artifacts)
                          consult_prompt = st.session_state[prompt_template_key].format(
-                             project_name=st.session_state.project_name,
-                             problem_statement=st.session_state.problem_statement,
+                             project_name=escape_curly_braces(st.session_state.project_name),
+                             problem_statement=escape_curly_braces(st.session_state.problem_statement),
                              current_stage="Analysis Guidance",
                              project_artifacts=project_artifacts,
-                             specific_request=consultation_request
+                             specific_request=escape_curly_braces(consultation_request)
                          )
                     else:
                          # For other personas, use a generic consultation format
@@ -1714,9 +1753,9 @@ def display_data_understanding_step():
 
                     try:
                         prompt = st.session_state.analyst_prompt_template.format(
-                             problem_statement=st.session_state.problem_statement,
-                             manager_plan=st.session_state.manager_plan,
-                             data_profiles_summary=all_profiles_summary
+                             problem_statement=escape_curly_braces(st.session_state.problem_statement),
+                             manager_plan=escape_curly_braces(st.session_state.manager_plan),
+                             data_profiles_summary=escape_curly_braces(all_profiles_summary)
                         )
                         analyst_response = get_gemini_response(prompt, persona="analyst", model=st.session_state.gemini_model)
                         if analyst_response and not analyst_response.startswith("Error:"):
@@ -1825,11 +1864,11 @@ def display_data_understanding_step():
                          project_artifacts = f"Analyst's Data Summary:\n{st.session_state.analyst_summary}"
                          project_artifacts = escape_curly_braces(project_artifacts)
                          consult_prompt = st.session_state[prompt_template_key].format(
-                             project_name=st.session_state.project_name,
-                             problem_statement=st.session_state.problem_statement,
+                             project_name=escape_curly_braces(st.session_state.project_name),
+                             problem_statement=escape_curly_braces(st.session_state.problem_statement),
                              current_stage="Data Understanding",
                              project_artifacts=project_artifacts,
-                             specific_request=consultation_request
+                             specific_request=escape_curly_braces(consultation_request)
                          )
                     else:
                          # For other personas, use a generic consultation format
@@ -1916,10 +1955,10 @@ def display_manager_planning_step():
             # Use the editable prompt template
             try:
                 prompt = st.session_state.manager_prompt_template.format(
-                    project_name=st.session_state.project_name,
-                    problem_statement=st.session_state.problem_statement,
-                    data_context=st.session_state.data_context,
-                    file_info=file_info if file_info else "No data files loaded."
+                    project_name=escape_curly_braces(st.session_state.project_name),
+                    problem_statement=escape_curly_braces(st.session_state.problem_statement),
+                    data_context=escape_curly_braces(st.session_state.data_context),
+                    file_info=escape_curly_braces(file_info if file_info else "No data files loaded.")
                 )
                 manager_response = get_gemini_response(prompt, persona="manager", model=st.session_state.gemini_model)
                 if manager_response and not manager_response.startswith("Error:"):
@@ -2008,11 +2047,11 @@ def display_manager_planning_step():
                          project_artifacts = f"Current Analysis Plan:\n{st.session_state.manager_plan}"
                          project_artifacts = escape_curly_braces(project_artifacts)
                          consult_prompt = st.session_state[prompt_template_key].format(
-                             project_name=st.session_state.project_name,
-                             problem_statement=st.session_state.problem_statement,
+                             project_name=escape_curly_braces(st.session_state.project_name),
+                             problem_statement=escape_curly_braces(st.session_state.problem_statement),
                              current_stage="Manager Planning",
                              project_artifacts=project_artifacts,
-                             specific_request=consultation_request
+                             specific_request=escape_curly_braces(consultation_request)
                          )
                     else:
                          # For other personas, use a generic consultation format

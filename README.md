@@ -93,7 +93,7 @@ Follow the installation and running instructions above. This requires Python kno
 ## Project Structure
 
 - `app.py`: Main Streamlit application
-- `src/utils.py`: Utility functions for Gemini API integration and data processing
+- `app.py`: All app logic including Gemini integration and data processing
 - `requirements.txt`: Required Python dependencies
 - `.env`: Environment variables (not included in repository)
 

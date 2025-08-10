@@ -30,7 +30,7 @@ Fill in the deployment form:
 2. Click "Add secrets"
 3. In the text area that appears, enter the following:
    ```
-   GEMINI_API_KEY = "AIzaSyCzFpmol5qZ6VlU7owOOOdPOedglI7RcaI"
+   GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"
    ```
    (Replace with your actual API key if different)
 4. Click "Save"
